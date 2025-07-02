@@ -1,0 +1,61 @@
+body {
+    background-image: url('../images/boat-2430945_1280.jpg');
+    /* Image libre de droit de "paulbr75" récupérée sur pixabay */
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+}
+
+h2 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 2rem;
+    text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+#registerForm {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 2rem;
+    border-radius: 0.5rem;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+#registerForm button {
+    display: block;
+    margin: 1rem auto;
+    min-width: 140px;
+    padding: 0.6rem 1.2rem;
+}
+
+
+#btnRetourFixed {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.mt-3 {
+    text-align: center;
+    color: #fff;
+    text-shadow: 1px 1px 2px #000;
+}
+
+footer {
+    margin-top: 50px;
+    color: aliceblue;
+    text-align: center;
+    padding: 5px 0;
+    border-radius: 25px;
+    width: 25%;
+    background: rgba(0, 0, 0, 0.317);
+    /* fond semi-transparent pour lisibilité */
+}
