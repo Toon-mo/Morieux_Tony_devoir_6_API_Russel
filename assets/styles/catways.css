@@ -1,0 +1,64 @@
+body {
+    background-image: url('../images/boat-2430945_1280.jpg');
+    /* Image libre de droit de "paulbr75" récupérée sur pixabay */
+    background-attachment: fixed;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+}
+
+h2 {
+    color: #003366;
+    font-weight: 700;
+}
+
+form {
+    background: white;
+    padding: 1.5rem 2rem;
+    border-radius: 0.4rem;
+    box-shadow: 0 0 10px rgba(0, 51, 102, 0.15);
+    max-width: 600px;
+    margin: 0 auto 3rem auto;
+}
+
+.catway-card {
+    background-color: white;
+    padding: 3px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+#catwayList {
+    max-width: 900px;
+    margin: 0 auto 2rem auto;
+}
+
+/* Bouton retour fixe */
+#btnRetourFixed {
+    position: fixed;
+    bottom: 20px;
+    left: 94%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    max-width: 200px;
+}
+
+footer {
+    text-align: center;
+    margin-top: 4rem;
+    padding: 1rem 0;
+    background-color: #003366;
+    color: white;
+    border-radius: 0.3rem;
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
+
+/* Responsive tweaks */
+@media (max-width: 576px) {
+    form {
+        padding: 1rem;
+    }
+}

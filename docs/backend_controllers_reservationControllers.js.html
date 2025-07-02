@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: backend/controllers/reservationControllers.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: backend/controllers/reservationControllers.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const Reservation = require("../models/reservation.model");
+const Catway = require("../models/catway.model");
+
+/**
+ * Récupère toutes les réservations.
+ *
+ * @async
+ * @function getAll
+ * @param {Object} req - Objet requête Express.
+ * @param {Object} res - Objet réponse Express.
+ *
+ * @returns {JSON[]} Liste des réservations.
+ * @returns {JSON} Message d'erreur 500 en cas d'erreur serveur.
+ */
+exports.getAll = async (req, res) => {
+  try {
+    const reservations = await Reservation.find();
+    res.json(reservations);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Erreur serveur lors de la récupération des réservations",
+    });
+  }
+};
+
+/**
+ * Crée une nouvelle réservation.
+ * Vérifie que le catway est en bon état et disponible sur les dates demandées.
+ *
+ * @async
+ * @function create
+ * @param {Object} req - Objet requête Express.
+ * @param {Object} req.body - Corps de la requête.
+ * @param {number|string} req.body.catwayNumber - Numéro du catway réservé.
+ * @param {string} req.body.startDate - Date de début de réservation (format ISO).
+ * @param {string} req.body.endDate - Date de fin de réservation (format ISO).
+ * @param {Object} res - Objet réponse Express.
+ *
+ * @returns {JSON} Objet réservation créée (201).
+ * @returns {JSON} Message d'erreur 400 si catway indisponible ou dates en conflit.
+ * @returns {JSON} Message d'erreur 400 en cas de données invalides.
+ */
+exports.create = async (req, res) => {
+  try {
+    const { catwayNumber, startDate, endDate } = req.body;
+
+    // Vérifier que le catway existe et est en bon état
+    const catway = await Catway.findOne({
+      catwayNumber: Number(catwayNumber),
+      catwayState: "bon état",
+    });
+    if (!catway) {
+      return res.status(400).json({
+        message:
+          "Le catway choisi n'est pas disponible car il n'est pas en bon état.",
+      });
+    }
+
+    // Vérifier qu'il n'y a pas de réservation qui chevauche les dates
+    const chevauchement = await Reservation.findOne({
+      catwayNumber: Number(catwayNumber),
+      $or: [
+        {
+          startDate: { $lte: new Date(endDate) },
+          endDate: { $gte: new Date(startDate) },
+        },
+      ],
+    });
+    if (chevauchement) {
+      return res.status(400).json({
+        message: "Le catway est déjà réservé sur ces dates.",
+      });
+    }
+
+    const newReservation = new Reservation(req.body);
+    const savedReservation = await newReservation.save();
+    res.status(201).json(savedReservation);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({
+      message: "Erreur lors de la création de la réservation",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Met à jour une réservation existante.
+ * Vérifie que le catway est en bon état et disponible sur les nouvelles dates demandées,
+ * en excluant la réservation modifiée du contrôle de conflit.
+ *
+ * @async
+ * @function update
+ * @param {Object} req - Objet requête Express.
+ * @param {string} req.params.id - ID de la réservation à modifier.
+ * @param {Object} req.body - Données à mettre à jour.
+ * @param {number|string} req.body.catwayNumber - Nouveau numéro du catway réservé.
+ * @param {string} req.body.startDate - Nouvelle date de début (format ISO).
+ * @param {string} req.body.endDate - Nouvelle date de fin (format ISO).
+ * @param {Object} res - Objet réponse Express.
+ *
+ * @returns {JSON} Objet réservation mise à jour.
+ * @returns {JSON} Message d'erreur 400 si catway indisponible ou conflit de dates.
+ * @returns {JSON} Message d'erreur 404 si réservation non trouvée.
+ */
+exports.update = async (req, res) => {
+  try {
+    const { catwayNumber, startDate, endDate } = req.body;
+
+    // Vérifier que le catway existe et est en bon état
+    const catway = await Catway.findOne({
+      catwayNumber: Number(catwayNumber),
+      catwayState: "bon état",
+    });
+    if (!catway) {
+      return res.status(400).json({
+        message:
+          "Le catway choisi n'est pas disponible car il n'est pas en bon état.",
+      });
+    }
+
+    // Vérifier qu'il n'y a pas de réservation qui chevauche les dates, en excluant la réservation actuelle
+    const chevauchement = await Reservation.findOne({
+      _id: { $ne: req.params.id },
+      catwayNumber: Number(catwayNumber),
+      $or: [
+        {
+          startDate: { $lte: new Date(endDate) },
+          endDate: { $gte: new Date(startDate) },
+        },
+      ],
+    });
+    if (chevauchement) {
+      return res.status(400).json({
+        message: "Le catway est déjà réservé sur ces dates.",
+      });
+    }
+
+    const updatedReservation = await Reservation.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!updatedReservation) {
+      return res.status(404).json({ message: "Réservation non trouvée" });
+    }
+    res.json(updatedReservation);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({
+      message: "Erreur lors de la mise à jour de la réservation",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Supprime une réservation.
+ *
+ * @async
+ * @function delete
+ * @param {Object} req - Objet requête Express.
+ * @param {string} req.params.id - ID de la réservation à supprimer.
+ * @param {Object} res - Objet réponse Express.
+ *
+ * @returns {JSON} Message de confirmation de suppression.
+ * @returns {JSON} Message d'erreur 404 si réservation non trouvée.
+ * @returns {JSON} Message d'erreur 500 en cas d'erreur serveur.
+ */
+exports.delete = async (req, res) => {
+  try {
+    const deletedReservation = await Reservation.findByIdAndDelete(
+      req.params.id
+    );
+    if (!deletedReservation) {
+      return res.status(404).json({ message: "Réservation non trouvée" });
+    }
+    res.json({ message: "Réservation supprimée" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Erreur serveur lors de la suppression de la réservation",
+      error: error.message,
+    });
+  }
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-app.html">app</a></li><li><a href="module-seed.html">seed</a></li><li><a href="module-server.html">server</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addCatway">addCatway</a></li><li><a href="global.html#addReservation">addReservation</a></li><li><a href="global.html#authMiddleware">authMiddleware</a></li><li><a href="global.html#connectDB">connectDB</a></li><li><a href="global.html#create">create</a></li><li><a href="global.html#delete">delete</a></li><li><a href="global.html#deleteCatway">deleteCatway</a></li><li><a href="global.html#deleteReservation">deleteReservation</a></li><li><a href="global.html#deleteUser">deleteUser</a></li><li><a href="global.html#editUser">editUser</a></li><li><a href="global.html#fetchCatways">fetchCatways</a></li><li><a href="global.html#fetchReservations">fetchReservations</a></li><li><a href="global.html#fetchUserRole">fetchUserRole</a></li><li><a href="global.html#fetchUsers">fetchUsers</a></li><li><a href="global.html#form">form</a></li><li><a href="global.html#getAll">getAll</a></li><li><a href="global.html#login">login</a></li><li><a href="global.html#logout">logout</a></li><li><a href="global.html#me">me</a></li><li><a href="global.html#register">register</a></li><li><a href="global.html#setupDashboard">setupDashboard</a></li><li><a href="global.html#token">token</a></li><li><a href="global.html#update">update</a></li><li><a href="global.html#updateCatway">updateCatway</a></li><li><a href="global.html#updateReservation">updateReservation</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Jul 02 2025 13:30:29 GMT+0200 (heure d’été d’Europe centrale)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
